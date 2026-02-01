@@ -36,6 +36,9 @@ func InitDB() {
         log.Fatal("Failed to connect to database:", err)
     }
 
+    // SQL 쿼리 로깅 활성화 (개발용)
+    DB = DB.Debug()
+
     // 테이블 자동 생성 (개발용)
     err = DB.AutoMigrate(&models.Post{}, &models.SearchHistory{})
     if err != nil {
