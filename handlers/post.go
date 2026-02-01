@@ -5,7 +5,9 @@ import (
 	"board/models"
 	"math"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 )
@@ -110,12 +112,55 @@ func GetPost(c *gin.Context) {
     c.JSON(200, post)
 }
 
+// validateTitleLength 제목 길이 검증 (한글 45자/영어 72자)
+// 바이트 길이로 근사치 계산: 한글 3바이트, 영어 1바이트
+func validateTitleLength(title string) bool {
+    title = strings.TrimSpace(title)
+    if title == "" {
+        return false
+    }
+
+    // 바이트 길이 계산
+    byteLen := len([]byte(title))
+    
+    // 한글 45자 = 135바이트, 영어 72자 = 72바이트
+    // 실제로는 한글과 영어가 섞여있을 수 있으므로, 최대 바이트 길이를 135로 제한
+    // (한글만 있는 경우 45자, 영어만 있는 경우 72자보다 훨씬 많을 수 있음)
+    // 더 정확하게는 유니코드 문자 수를 세어야 하지만, 바이트 길이로 근사치 계산
+    if byteLen > 135 {
+        return false
+    }
+
+    // 유니코드 문자 수로도 체크 (한글 45자 제한)
+    runeCount := utf8.RuneCountInString(title)
+    if runeCount > 45 {
+        return false
+    }
+
+    return true
+}
+
 // CreatePost 게시글 작성
 func CreatePost(c *gin.Context) {
     var req models.CreatePostRequest
 
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(400, gin.H{"error": "요청값 잘못됨(누락)"})
+        return
+    }
+
+    // 제목/본문 공백 제거 후 검증
+    req.Title = strings.TrimSpace(req.Title)
+    req.Content = strings.TrimSpace(req.Content)
+
+    if req.Title == "" || req.Content == "" {
+        c.JSON(400, gin.H{"error": "요청값 잘못됨(누락)"})
+        return
+    }
+
+    // 제목 길이 검증 (한글 45자/영어 72자)
+    if !validateTitleLength(req.Title) {
+        c.JSON(400, gin.H{"error": "제목 길이 제한을 초과했습니다 (한글 45자/영어 72자)"})
         return
     }
 
@@ -145,6 +190,21 @@ func UpdatePost(c *gin.Context) {
     var req models.UpdatePostRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(400, gin.H{"error": "요청값 잘못됨(누락)"})
+        return
+    }
+
+    // 제목/본문 공백 제거 후 검증
+    req.Title = strings.TrimSpace(req.Title)
+    req.Content = strings.TrimSpace(req.Content)
+
+    if req.Title == "" || req.Content == "" {
+        c.JSON(400, gin.H{"error": "요청값 잘못됨(누락)"})
+        return
+    }
+
+    // 제목 길이 검증 (한글 45자/영어 72자)
+    if !validateTitleLength(req.Title) {
+        c.JSON(400, gin.H{"error": "제목 길이 제한을 초과했습니다 (한글 45자/영어 72자)"})
         return
     }
 

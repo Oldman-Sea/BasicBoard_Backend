@@ -12,8 +12,8 @@ import (
 )
 
 // SearchPosts 검색
-// 웹: GET /search?q=검색어&page=1&limit=20 -> PageResponse<Post>
-// 앱: GET /search?q=검색어&limit=20&cursorCreatedAt=...&cursorId=... -> CursorResponse<Post>
+// 웹: GET /search?q=검색어&page=1&limit=5 -> PageResponse<Post>
+// 앱: GET /search?q=검색어&limit=5&cursorCreatedAt=...&cursorId=... -> CursorResponse<Post>
 func SearchPosts(c *gin.Context) {
     keyword := c.Query("q")
     if keyword == "" {
@@ -21,24 +21,68 @@ func SearchPosts(c *gin.Context) {
         return
     }
 
-    // 검색 기록 저장
-    saveSearchHistory(keyword)
+    // 검색어에서 모든 공백 제거
+    processedKeyword := strings.ReplaceAll(keyword, " ", "")
+    processedKeyword = strings.TrimSpace(processedKeyword)
 
-    limitStr := c.DefaultQuery("limit", "20")
-    limit, _ := strconv.Atoi(limitStr)
-    if limit > 100 {
-        limit = 100
-    }
-    if limit <= 0 {
-        limit = 20
+    // 공백만 입력한 경우 빈 결과 반환
+    if processedKeyword == "" {
+        // 웹: page 기반
+        pageStr := c.Query("page")
+        if pageStr != "" {
+            page, _ := strconv.Atoi(pageStr)
+            if page <= 0 {
+                page = 1
+            }
+            limitStr := c.DefaultQuery("limit", "5")
+            limit, _ := strconv.Atoi(limitStr)
+            if limit <= 0 {
+                limit = 5
+            }
+
+            c.JSON(200, models.PageResponse[models.Post]{
+                Items:     []models.Post{},
+                Page:      page,
+                Limit:     limit,
+                Total:     0,
+                TotalPages: 0,
+            })
+            return
+        }
+
+        // 앱: cursor 기반
+        limitStr := c.DefaultQuery("limit", "20")
+        limit, _ := strconv.Atoi(limitStr)
+        if limit <= 0 {
+            limit = 20
+        }
+
+        c.JSON(200, models.CursorResponse[models.Post]{
+            Items:      []models.Post{},
+            NextCursor: nil,
+            HasMore:    false,
+        })
+        return
     }
 
-    // 검색어로 제목 또는 본문에 포함된 글 찾기
-    searchPattern := "%" + keyword + "%"
+    // 검색 기록 저장 (공백 제거된 검색어로 저장)
+    saveSearchHistory(processedKeyword)
+
+    // 공백 제거된 검색어로 검색 패턴 생성
+    searchPattern := "%" + processedKeyword + "%"
 
     // 웹: page 기반
     pageStr := c.Query("page")
     if pageStr != "" {
+        limitStr := c.DefaultQuery("limit", "5")
+        limit, _ := strconv.Atoi(limitStr)
+        if limit > 100 {
+            limit = 100
+        }
+        if limit <= 0 {
+            limit = 5
+        }
+
         page, _ := strconv.Atoi(pageStr)
         if page <= 0 {
             page = 1
@@ -72,6 +116,15 @@ func SearchPosts(c *gin.Context) {
     }
 
     // 앱: cursor 기반
+    limitStr := c.DefaultQuery("limit", "5")
+    limit, _ := strconv.Atoi(limitStr)
+    if limit > 100 {
+        limit = 100
+    }
+    if limit <= 0 {
+        limit = 5
+    }
+
     cursorCreatedAtStr := c.Query("cursorCreatedAt")
     cursorIdStr := c.Query("cursorId")
 
