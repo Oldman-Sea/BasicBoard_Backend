@@ -113,7 +113,38 @@ func GetPost(c *gin.Context) {
         return
     }
 
-    c.JSON(200, post)
+	var prevId *uint
+    var nextId *uint
+
+    // 이전 글 id
+    var prev uint
+    if err := database.DB.
+        Model(&models.Post{}).
+        Select("id").
+        Where("id < ?", post.ID).
+        Order("id desc").
+        Limit(1).
+        Scan(&prev).Error; err == nil && prev != 0 {
+        prevId = &prev
+    }
+
+    // 다음 글 id
+    var next uint
+    if err := database.DB.
+        Model(&models.Post{}).
+        Select("id").
+        Where("id > ?", post.ID).
+        Order("id asc").
+        Limit(1).
+        Scan(&next).Error; err == nil && next != 0 {
+        nextId = &next
+    }
+
+    c.JSON(200, gin.H{
+        "post":   post,
+        "prevId": prevId,
+        "nextId": nextId,
+    })
 }
 
 // validateTitleLength 제목 길이 검증 (한글 45자/영어 72자)
