@@ -13,21 +13,20 @@ import (
 )
 
 // GetPosts 게시글 목록 조회
-// 웹: GET /posts?page=1&limit=20 -> PageResponse<Post>
+// 웹: GET /posts?page=1&limit=5 -> PageResponse<Post>
 // 앱: GET /posts?limit=20&cursorCreatedAt=...&cursorId=... -> CursorResponse<Post>
 func GetPosts(c *gin.Context) {
-    limitStr := c.DefaultQuery("limit", "5")
-    limit, _ := strconv.Atoi(limitStr)
-    if limit > 100 {
-        limit = 100
-    }
-    if limit <= 0 {
-        limit = 5
-    }
+    
 
     // 웹: page 기반
     pageStr := c.Query("page")
     if pageStr != "" {
+
+		limit := 5
+	    if limitStr := c.Query("limit"); limitStr != "" {
+	        limit, _ = strconv.Atoi(limitStr)
+	    }
+
         page, _ := strconv.Atoi(pageStr)
         if page <= 0 {
             page = 1
@@ -57,6 +56,11 @@ func GetPosts(c *gin.Context) {
     }
 
     // 앱: cursor 기반
+
+	limit := 20
+    if limitStr := c.Query("limit"); limitStr != "" {
+        limit, _ = strconv.Atoi(limitStr)
+    }
     cursorCreatedAtStr := c.Query("cursorCreatedAt")
     cursorIdStr := c.Query("cursorId")
 
