@@ -21,50 +21,53 @@
 - 공통점: 셋 다 DB 결과를 Go 변수에 집어넣는 역할을 함.
 - 차이점: **어떤 형태의 그릇에, 어떻게 채우느냐**
 
-- First
-  조건에 맞는 **첫번째 레코드**를 **struct**에 채움.
+#### First
 
-  ```go
-  var post models.Post
-  err := db.Where("id = ?", 10).First(&post).Error
-  // sql문 번역
-  // SELECT * FROM posts WHERE id = 10 LIMIT 1;
-  ```
+조건에 맞는 **첫번째 레코드**를 **struct**에 채움.
 
-  - struct(해당 코드에서는 models.Post) 전체 컬럼 채움.
-  - 결과 없으면 → record not found 에러
-  - 단일 row 용
-  - **엔티티 하나 가져올 때 사용**
+```go
+var post models.Post
+err := db.Where("id = ?", 10).First(&post).Error
+// sql문 번역
+// SELECT * FROM posts WHERE id = 10 LIMIT 1;
+```
 
-- Find
-  조건에 맞는 **여러 레코드를**를 **slice**에 채움.
+- struct(해당 코드에서는 models.Post) 전체 컬럼 채움.
+- 결과 없으면 → record not found 에러
+- 단일 row 용
+- **엔티티 하나 가져올 때 사용**
 
-  ```go
-  var posts []models.Post
-  err := db.Where("user_id = ?", 1).Find(&posts).Error
-  // sql문 번역
-  // SELECT * FROM posts WHERE user_id = 1;
-  ```
+#### Find
 
-  - 여러 row 가능
-  - 결과 없어도 에러 안남.(빈 slice 반환)
-  - 목록 조회용
-  - **리스트 페이지**
+조건에 맞는 **여러 레코드를**를 **slice**에 채움.
 
-- Scan
-  쿼리 결과를 **임의의 변수/struct**에 그대로 복사
+```go
+var posts []models.Post
+err := db.Where("user_id = ?", 1).Find(&posts).Error
+// sql문 번역
+// SELECT * FROM posts WHERE user_id = 1;
+```
 
-  ```go
-  var id uint
-  db.Select("id").Scan(&id)
-  // sql문 번역
-  // SELECT id FROM posts ...
-  ```
+- 여러 row 가능
+- 결과 없어도 에러 안남.(빈 slice 반환)
+- 목록 조회용
+- **리스트 페이지**
 
-  - Model struct가 필요 없음.
-  - 컬럼 수 = 변수/필드 수만 맞으면 됨.
-  - 부분 조회/집계/커스텀 쿼리에 최적
-  - **SQL 결과를 그냥 복사해 반환**
+#### Scan
+
+쿼리 결과를 **임의의 변수/struct**에 그대로 복사
+
+```go
+var id uint
+db.Select("id").Scan(&id)
+// sql문 번역
+// SELECT id FROM posts ...
+```
+
+- Model struct가 필요 없음.
+- 컬럼 수 = 변수/필드 수만 맞으면 됨.
+- 부분 조회/집계/커스텀 쿼리에 최적
+- **SQL 결과를 그냥 복사해 반환**
 
 | 구분         | First  | Find     | Scan             |
 | ------------ | ------ | -------- | ---------------- |
